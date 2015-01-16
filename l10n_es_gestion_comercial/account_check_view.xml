@@ -18,7 +18,6 @@
         <record model="ir.ui.view" id="view_account_issued_check_tree">
             <field name="name">account.issued.check.tree</field>
             <field name="model">account.issued.check</field>
-            <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Documentos Emitidos">
                     <field name="number"/>
@@ -41,7 +40,6 @@
         <record model="ir.ui.view" id="view_account_issued_check_form">
             <field name="name">account.issued.check.form</field>
             <field name="model">account.issued.check</field>
-            <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Documentos Emitidos">
                     <field name="number"/>
@@ -80,7 +78,6 @@
         <record model="ir.ui.view" id="view_account_third_check_tree">
             <field name="name">account.third.check.tree</field>
             <field name="model">account.third.check</field>
-            <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Documentos de Terceros">
                     <field name="number"/>
@@ -105,7 +102,6 @@
         <record model="ir.ui.view" id="view_account_third_check_form">
             <field name="name">account.third.check.form</field>
             <field name="model">account.third.check</field>
-            <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Documentos de Terceros">
                     <field name="number"/>
@@ -125,7 +121,6 @@
        <record id="view_issued_checks_search" model="ir.ui.view">
             <field name="name">issued.check.search</field>
             <field name="model">account.issued.check</field>
-            <field name="type">search</field>
             <field name="arch" type="xml">
                 <search string="Documentos Emitidos...">
                  <group colspan='4'>
@@ -143,7 +138,6 @@
        <record id="view_third_checks_search" model="ir.ui.view">
             <field name="name">third.check.search</field>
             <field name="model">account.third.check</field>
-            <field name="type">search</field>
             <field name="arch" type="xml">
                 <search string="Documentos de Terceros...">
                  <group colspan='4'>

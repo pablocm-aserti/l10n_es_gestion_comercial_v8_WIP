@@ -3,22 +3,23 @@
     <data >
 	<!--Diarios-->
         <record id="account_journal_diario_impagos" model="account.journal">
-            <field eval="&quot;&quot;&quot;IMP&quot;&quot;&quot;" name="code"/>
-            <field eval="[(6,0,[])]" name="account_control_ids"/>
+            <field name="code" eval="&quot;&quot;&quot;IMP&quot;&quot;&quot;"/>
+            <field name="account_control_ids" eval="[(6,0,[])]"/>
             <field name="user_id" ref="base.user_root"/>
-            <field eval="0" name="centralisation"/>
-            <field eval="0" name="group_invoice_lines"/>
-            <field eval="&quot;&quot;&quot;bank&quot;&quot;&quot;" name="type"/>
+            <field name="centralisation" eval="0"/>
+            <field name="group_invoice_lines" eval="0"/>
+            <field name="type" eval="&quot;&quot;&quot;bank&quot;&quot;&quot;"/>
+            <!-- 
             <field name="view_id" ref="account.account_journal_view"/>
-            <field eval="[(6,0,[])]" name="type_control_ids"/>
-            <field name="sequence_id" ref="l10n_es.sequence_journal"/>
-            <field eval="0" name="update_posted"/>
-            <field eval="&quot;&quot;&quot;Impagos&quot;&quot;&quot;" name="name"/>
-            <!--field eval="0" name="refund_journal"/-->
-            <field eval="0" name="entry_posted"/>
-            <field eval="1" name="indirect_payment"/>
-            <field eval="0" name="without_account_efect"/>
-            <field eval="&quot;&quot;&quot;impago&quot;&quot;&quot;" name="indirect_payment_type"/>
+             -->
+            <field name="type_control_ids" eval="[(6,0,[])]"/>
+<!--             <field name="sequence_id" ref="l10n_es.sequence_journal"/> -->
+            <field name="update_posted" eval="0"/>
+            <field name="name" eval="&quot;&quot;&quot;Impagos&quot;&quot;&quot;"/>
+            <field name="entry_posted" eval="0"/>
+            <field name="indirect_payment" eval="1"/>
+            <field name="without_account_efect" eval="0"/>
+            <field name="indirect_payment_type" eval="&quot;&quot;&quot;impago&quot;&quot;&quot;"/>
             <field name="default_credit_account_id" search="[('code','like','4315%00')]"/>
             <field name="default_debit_account_id" search="[('code','like','4315%00')]"/>
         </record>
@@ -30,12 +31,13 @@
             <field eval="0" name="centralisation"/>
             <field eval="0" name="group_invoice_lines"/>
             <field eval="&quot;&quot;&quot;bank&quot;&quot;&quot;" name="type"/>
+            <!-- 
             <field name="view_id" ref="account.account_journal_view"/>
+             -->
             <field eval="[(6,0,[])]" name="type_control_ids"/>
-            <field name="sequence_id" ref="l10n_es.sequence_journal"/>
+<!--             <field name="sequence_id" ref="l10n_es.sequence_journal"/> -->
             <field eval="0" name="update_posted"/>
             <field eval="&quot;&quot;&quot;Documento de Cobro&quot;&quot;&quot;" name="name"/>
-            <!--field eval="0" name="refund_journal"/-->
             <field eval="0" name="entry_posted"/>
             <field eval="1" name="indirect_payment"/>
             <field eval="0" name="without_account_efect"/>
@@ -51,9 +53,11 @@
             <field eval="0" name="centralisation"/>
             <field eval="0" name="group_invoice_lines"/>
             <field eval="&quot;&quot;&quot;bank&quot;&quot;&quot;" name="type"/>
+            <!-- 
             <field name="view_id" ref="account.account_journal_view"/>
+             -->
             <field eval="[(6,0,[])]" name="type_control_ids"/>
-            <field name="sequence_id" ref="l10n_es.sequence_journal"/>
+<!--             <field name="sequence_id" ref="l10n_es.sequence_journal"/> -->
             <field eval="0" name="update_posted"/>
             <field eval="&quot;&quot;&quot;Incobrable&quot;&quot;&quot;" name="name"/>
             <!--field eval="0" name="refund_journal"/-->
@@ -72,9 +76,11 @@
             <field eval="0" name="centralisation"/>
             <field eval="0" name="group_invoice_lines"/>
             <field eval="&quot;&quot;&quot;bank&quot;&quot;&quot;" name="type"/>
+            <!-- 
             <field name="view_id" ref="account.account_journal_view"/>
+             -->
             <field eval="[(6,0,[])]" name="type_control_ids"/>
-            <field name="sequence_id" ref="l10n_es.sequence_journal"/>
+<!--             <field name="sequence_id" ref="l10n_es.sequence_journal"/> -->
             <field eval="1" name="active"/>
             <field eval="0" name="update_posted"/>
             <field eval="&quot;&quot;&quot;Deuda Efectos Descontados&quot;&quot;&quot;" name="name"/>
@@ -93,9 +99,11 @@
             <field eval="0" name="centralisation"/>
             <field eval="0" name="group_invoice_lines"/>
             <field eval="&quot;&quot;&quot;bank&quot;&quot;&quot;" name="type"/>
+            <!-- 
             <field name="view_id" ref="account.account_journal_view"/>
+             -->
             <field eval="[(6,0,[])]" name="type_control_ids"/>
-            <field name="sequence_id" ref="l10n_es.sequence_journal"/>
+<!--             <field name="sequence_id" ref="l10n_es.sequence_journal"/> -->
             <field eval="1" name="active"/>
             <field eval="0" name="update_posted"/>
             <field eval="&quot;&quot;&quot;Deuda Factoring&quot;&quot;&quot;" name="name"/>
@@ -106,6 +114,7 @@
             <field name="default_credit_account_id" search="[('code','like','4320%00')]"/>
             <field name="default_debit_account_id" search="[('code','like','4320%00')]"/>
         </record>
+        <!-- 
         <record id="account_journal_column_1" model="account.journal.column">
             <field eval="1" name="view_id"/>
             <field eval="&quot;&quot;&quot;payment_order_check&quot;&quot;&quot;" name="field"/>
@@ -140,6 +149,6 @@
             <field eval="&quot;&quot;&quot;Mostrar en Efectos&quot;&quot;&quot;" name="name"/>
             <field eval="25" name="sequence"/>
         </record>
-
+		 -->
     </data>
 </openerp>

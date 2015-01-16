@@ -5,7 +5,7 @@
      <act_window
             id="l10n_es_efectos_parter_menu"
             name="Efectos pendientes"
-            groups="base.group_extended"
+            groups="account.group_account_invoice"
             res_model="account.move.line"
             src_model="res.partner"
             view_mode="tree"

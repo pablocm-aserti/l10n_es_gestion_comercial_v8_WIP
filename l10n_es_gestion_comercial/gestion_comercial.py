@@ -3,12 +3,12 @@
 #
 #    OpenERP, Open Source Management Solution
 #
-#    Copyright (c) 2011 Soluntec - Soluciones Tecnológicas (http://www.soluntec.es) All Rights Reserved.
-#
+#    Copyright (c) 2011 Soluntec - Soluciones Tecnológicas
+#                       (http://www.soluntec.es) All Rights Reserved.
 #
 #    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
+#    it under the terms of the GNU Affero General Public License as published
+#    by the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
 #    This program is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,144 +18,124 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
+from openerp import models, fields, _, api
 from datetime import datetime
-from osv import fields, osv
-import netsvc
-from tools import config
-import account_check
+# from osv import fields, osv
+# import netsvc
+# from tools import config
 import time
-import pooler
+from openerp import pooler
 
-from tools.translate import _
 
 #
 # Diarios
 #
-#==================================================================================
-#============================== INHERIT CLASS ACCOUNT JOURNAL======================
-#==================================================================================
-#Se modifica la clase de diarios contables para añadir nuevos campos que serán luego utilizados
-#para determinar el comportamiento de los comprobantes de paggo
-
-class account_journal(osv.osv):
-
-# Se añaden a los comprobantes de pago, los campos de cheque recibido y de pago indirecto.
-# el campo de pago indirecto es un campo no visible, que se utilizará para registrar aquellos pagos que corresponden
-# a documentos bancarios, es decir que no abonan directamente la factura sino que agrupan la deuda en un nuevo efecto cobrable
+# =============================================================================
+# =========================== INHERIT CLASS ACCOUNT JOURNAL ===================
+# =============================================================================
+# Se modifica la clase de diarios contables para añadir nuevos campos que
+# serán luego utilizados para determinar el comportamiento de los comprobantes
+# de pago
+class account_journal(models.Model):
+    # Se añaden a los comprobantes de pago, los campos de cheque recibido y de
+    # pago indirecto. El campo de pago indirecto es un campo no visible, que
+    # se utilizará para registrar aquellos pagos que corresponden a documentos
+    # bancarios, es decir que no abonan directamente la factura sino que
+    # agrupan la deuda en un nuevo efecto cobrable
 
     _inherit = 'account.journal'
     _name = 'account.journal'
-    _columns = {
-         'indirect_payment': fields.boolean('Gestión de efectos comerciales', help="Marcar si se va a utilizar este diario para registrar apuntes de efectos correspondiente a gestión comercial (pagarés, giros, cheques, etc). El sistema usuará la cuenta definida en la ficha de cliente. Si está en blanco usuará la definida en este diario"),
-         'without_account_efect': fields.boolean('Sin efecto contable', help="Si se marca esta opción, el sistema usará la cuenta de cobrables/pagables del cliente en lugar de la cuenta de fectos definidas en el diario o cliente"),
-         'indirect_payment_type': fields.selection([('documento','Documento de Cobro'),('impago','Impagos'),('incobrable','Incobrable')],'Tipo de Efecto Comercial', select=True),
-         'gestion_cobro': fields.boolean('Gestión de cobro', help="Marque esta opción si el diario será utilizado para operaciones de gestión de cobro"),
-         'descuento_efectos': fields.boolean('Descuento de Efectos', help="Marque esta opción si el diario será utilizado para operaciones de- descuento de efectos"),
-         'property_account_descuento_efectos': fields.property(
-            'account.account',
-            type='many2one',
-            relation='account.account',
-            string="Cuenta de descuento de Efectos",
-            method=True,
-            view_load=True,
-            required=False),
 
-    }
-
-account_journal()
+    indirect_payment = fields.Boolean(
+        'Gestión de efectos comerciales',
+        help="Marcar si se va a utilizar este diario para registrar apuntes "
+        "de efectos correspondiente a gestión comercial (pagarés, giros, "
+        "cheques, etc). El sistema usuará la cuenta definida en la ficha "
+        "de cliente. Si está en blanco usuará la definida en este diario")
+    without_account_efect = fields.Boolean(
+        'Sin efecto contable', help="Si se marca esta opción, el sistema "
+        "usará la cuenta de cobrables/pagables del cliente en lugar de la "
+        "cuenta de fectos definidas en el diario o cliente")
+    indirect_payment_type = fields.Selection(
+        [('documento', 'Documento de Cobro'),
+         ('impago', 'Impagos'),
+         ('incobrable', 'Incobrable')],
+        'Tipo de Efecto Comercial', select=True)
+    gestion_cobro = fields.Boolean(
+        'Gestión de cobro', help="Marque esta opción si el diario será "
+        "utilizado para operaciones de gestión de cobro")
+    descuento_efectos = fields.Boolean(
+        'Descuento de Efectos', help="Marque esta opción si el diario será "
+        "utilizado para operaciones de- descuento de efectos")
+    property_account_descuento_efectos = fields.Many2one(
+        'account.account', "Cuenta de descuento de Efectos",
+        company_dependent=True)
 
 
 #
 # Partners
 #
-#==================================================================================
-#============================== INHERIT CLASS RES_PARTNER==========================
-#==================================================================================
-#Se añade campos a los partners para registrar las cuentas a utilizar para efectos comerciales
-
-class res_partner(osv.osv):
+# =============================================================================
+# =========================== INHERIT CLASS RES_PARTNER =======================
+# =============================================================================
+# Se añade campos a los partners para registrar las cuentas a utilizar
+# para efectos comerciales
+class res_partner(models.Model):
 
     _inherit = 'res.partner'
     _name = 'res.partner'
 
-
-    _columns = {
-        'property_account_efectos_cartera': fields.property(
-            'account.account',
-            type='many2one',
-            relation='account.account',
-            string="Efectos Comerciales en Cartera",
-            method=True,
-            view_load=True,
-            domain="[('type', '=', 'receivable')]",
-            help="Esta cuenta será utilizada en lugar de la cuenta por defecto del diario para registrar los efectos comerciales en cartera",
-            required=False),
-        'property_account_impagos': fields.property(
-            'account.account',
-            type='many2one',
-            relation='account.account',
-            string="Impagos",
-            method=True,
-            view_load=True,
-            domain="[('type', '=', 'receivable')]",
-            help="Esta cuenta será utilizada en lugar de la cuenta por defecto del diario para registrar los efectos impagados",
-            required=False),
-        'property_account_efectos_incobrables': fields.property(
-            'account.account',
-            type='many2one',
-            relation='account.account',
-            string="Incobrables",
-            method=True,
-            view_load=True,
-            domain="[('type', '=', 'other')]",
-            help="Esta cuenta será utilizada en lugar de la cuenta por defecto para registrar los efectos incobrables",
-            required=False),
-        'property_account_efectos_descontados': fields.property(
-            'account.account',
-            type='many2one',
-            relation='account.account',
-            string="Efectos Descontados",
-            method=True,
-            view_load=True,
-            domain="[('type', '=', 'other')]",
-            help="Cuenta para efectos descontados",
-            required=False),
-    }
-
-res_partner()
-
-
+    property_account_efectos_cartera = fields.Many2one(
+        'account.account', "Efectos Comerciales en Cartera",
+        domain="[('type', '=', 'receivable')]",
+        help="Esta cuenta será utilizada en lugar de la cuenta por defecto "
+        "del diario para registrar los efectos comerciales en cartera",
+        company_dependent=True)
+    property_account_impagos = fields.Many2one(
+        'account.account', "Impagos",
+        domain="[('type', '=', 'receivable')]",
+        help="Esta cuenta será utilizada en lugar de la cuenta por defecto "
+        "del diario para registrar los efectos impagados",
+        company_dependent=True)
+    property_account_efectos_incobrables = fields.Many2one(
+        'account.account', "Incobrables",
+        domain="[('type', '=', 'other')]",
+        help="Esta cuenta será utilizada en lugar de la cuenta por defecto "
+        "para registrar los efectos incobrables",
+        company_dependent=True)
+    property_account_efectos_descontados = fields.Many2one(
+        'account.account', "Efectos Descontados",
+        domain="[('type', '=', 'other')]",
+        help="Cuenta para efectos descontados",
+        company_dependent=True)
 
 
 #
 # Comprobantes de Pago
 #
-#==================================================================================
-#============================== INHERIT CLASS ACCOUNT VOUCHER======================
-#==================================================================================
-#Se modifica la gestión de comprobantes de pago para que amplie la funcionalidad para
-#registrar pagos mediante pagarés,cheques, etc..
-
-class account_voucher(osv.osv):
-
-# Se añaden a los comprobantes de pago, los campos de cheque recibido y de pago indirecto.
-# el campo de pago indirecto es un campo no visible, que se utilizará para registrar aquellos pagos que corresponden
-# a documentos bancarios, es decir que no abonan directamente la factura sino que agrupan la deuda en un nuevo efecto cobrable
-
+# =============================================================================
+# ============================ INHERIT CLASS ACCOUNT VOUCHER ==================
+# =============================================================================
+# Se modifica la gestión de comprobantes de pago para que amplie la
+# funcionalidad para registrar pagos mediante pagarés,cheques, etc..
+class account_voucher(models.Model):
+    # Se añaden a los comprobantes de pago, los campos de cheque recibido y de
+    # pago indirecto. El campo de pago indirecto es un campo no visible, que
+    # se utilizará para registrar aquellos pagos que corresponden a documentos
+    # bancarios, es decir que no abonan directamente la factura sino que
+    # agrupan la deuda en un nuevo efecto cobrable
     _inherit = 'account.voucher'
     _name = 'account.voucher'
 
-    #================= METHODS =================#
+    # ================= METHODS ================= #
     def onchange_partner_id(self, cr, uid, ids, partner_id, journal_id, amount, currency_id, ttype, date, context=None):
 
         # We call the original event to give us back the original values
         res = super(account_voucher, self).onchange_partner_id(cr, uid, ids, partner_id, journal_id, amount, currency_id, ttype, date, context)
 
         if journal_id:
-
             journal_pool = self.pool.get('account.journal')
             journal = journal_pool.browse(cr, uid, journal_id, context=context)
-
 
             if journal.indirect_payment:
                 res['value']['indirect_payment'] = True
@@ -163,7 +143,6 @@ class account_voucher(osv.osv):
                 res['value']['indirect_payment'] = False
 
         return res
-
 
     def first_move_line_get(self, cr, uid, voucher_id, move_id, company_currency, current_currency, context=None):
         '''
@@ -205,53 +184,51 @@ class account_voucher(osv.osv):
 
         return move_line_vals
 
-
-
-
-    #================= FIELDS =================#
-    _columns = {
-         'payment_type': fields.many2one('payment.type', 'Tipo de Pago', help="Tipo de pago establecido para el nuevo efecto a crear"),
-         'received_check': fields.boolean('Received check', help="To write down that a check in paper support has been received, for example.", invisible=True),
-         'indirect_payment': fields.boolean('Document check', help="To mark if is not a direct payment"),
-         'expenses': fields.boolean('expenses', help="To mark if you have to take into account expenses"),
-         'issued_check_ids':fields.one2many('account.issued.check', 'voucher_id', 'Cheques emitidos'),
-         'third_check_receipt_ids':fields.one2many('account.third.check', 'voucher_id', 'Cheques de Terceros', required=False),
-         'third_check_ids':fields.many2many('account.third.check', 'third_check_voucher_rel', 'third_check_id', 'voucher_id', 'Cheques de Terceros'),
-         'property_account_gastos': fields.property(
-             'account.account',
-             type='many2one',
-             relation='account.account',
-             string="Cuenta Gastos",
-             method=True,
-             view_load=True,
-             domain="[('type', '=', 'other')]",
-             help="Gastos ocasionados por el impago",
-             required=False),
-         'expense_amount': fields.float('Cantidad Gastos'),
-         'invoice_expense':fields.boolean('Contabilizar Gastos?'),
-
-    }
-
-
-account_voucher()
+    # ================= FIELDS ================= #
+    payment_type = fields.Many2one(
+        'payment.mode.type', 'Tipo de Pago',
+        help="Tipo de pago establecido para el nuevo efecto a crear")
+    received_check = fields.Boolean(
+        'Received check', help="To write down that a check in paper "
+        "support has been received, for example.")
+    indirect_payment = fields.Boolean(
+        'Document check', help="To mark if is not a direct payment")
+    expenses = fields.Boolean(
+        'Expenses', help="To mark if you have to take into account expenses")
+    issued_check_ids = fields.One2many(
+        'account.issued.check', 'voucher_id', 'Cheques emitidos')
+    third_check_receipt_ids = fields.One2many(
+        'account.third.check', 'voucher_id', 'Cheques de Terceros')
+    third_check_ids = fields.Many2many(
+        'account.third.check', 'third_check_voucher_rel',
+        'third_check_id', 'voucher_id', 'Cheques de Terceros')
+    property_account_gastos = fields.Many2one(
+        'account.account', "Cuenta Gastos",
+        domain="[('type', '=', 'other')]",
+        help="Gastos ocasionados por el impago",
+        company_dependent=True)
+    expense_amount = fields.Float('Cantidad Gastos')
+    invoice_expense = fields.Boolean('Contabilizar Gastos')
 
 
 #
 # Apuntes contables
 #
-#==================================================================================
-#============================== INHERIT CLASS ACCOUNT VOUCHER======================
-#==================================================================================
-#Se realizan los siguientes cambios....
-#Se sobreescribe el campo funcional de tipo de pago con una nueva versión que hace lo mismo pero buscando ademas
-#el valor del comprante de pago si el efecto no esta relacionado directamente con una factura
-
-class account_move_line(osv.osv):
+# =============================================================================
+# =========================== INHERIT CLASS ACCOUNT VOUCHER ===================
+# =============================================================================
+# Se realizan los siguientes cambios....
+# Se sobreescribe el campo funcional de tipo de pago con una nueva versión que
+# hace lo mismo pero buscando ademas el valor del comprante de pago si el
+# efecto no esta relacionado directamente con una factura
+class account_move_line(models.Model):
     _name = 'account.move.line'
     _inherit = 'account.move.line'
 
-# Se amplia el metodo original de account_payment_extension. Ahora si no encuentra el tipo de pago en la factura
-# asociada el apunte, lo busca en el comprobante de pago... Si no esta en ninguno de los dos, lo deja en blanco.
+# Se amplia el metodo original de account_payment_extension.
+# Ahora si no encuentra el tipo de pago en la factura asociada el apunte,
+# lo busca en el comprobante de pago... Si no esta en ninguno de los dos,
+# lo deja en blanco.
     def _payment_type_get(self, cr, uid, ids, field_name, arg, context={}):
         result = {}
         invoice_obj = self.pool.get('account.invoice')
@@ -275,7 +252,8 @@ class account_move_line(osv.osv):
                     result[rec.id] = False
         return result
 
-## Se crea un nuevo campo funcional de tipo booleano que obtiene si es pago corresponde a un efecto de gestión comercial o no.
+# Se crea un nuevo campo funcional de tipo booleano que obtiene si es pago
+# corresponde a un efecto de gestión comercial o no.
     def _indirect_payment_get(self, cr, uid, ids, field_name, arg, context=None):
         result = {}
         voucher_obj = self.pool.get('account.voucher')
@@ -286,7 +264,7 @@ class account_move_line(osv.osv):
             if voucher_id:
                 voucher = voucher_obj.browse(cr, uid, voucher_id[0], context)
                 if voucher.indirect_payment:
-                    if rec.debit > 0: #rec.id.account_id.type = 'receivable'
+                    if rec.debit > 0:  # rec.id.account_id.type = 'receivable'
                         result[rec.id] = True
                     else:
                         result[rec.id] = False
@@ -296,7 +274,8 @@ class account_move_line(osv.osv):
                 result[rec.id] = False
         return result
 
-# Creamos los metodos de busqueda para obtener los registros que tienen el check de efecto de gestión comercial marcado
+# Creamos los metodos de busqueda para obtener los registros que tienen
+# el check de efecto de gestión comercial marcado
     def _indirect_payment_search(self, cr, uid, obj, name, args, context={}):
         """ Definition for searching account move lines with indirect_payment check ('indirect_payment','=',True)"""
         for x in args:
@@ -324,58 +303,61 @@ class account_move_line(osv.osv):
                 result.add(invoice.move_id.id)
         return list(result)
 
+#     payment_type = fields.Many2one('payment.type', "Payment type", compute=_payment_type_get)
+#     store={
+#            'account.move.line': (lambda self, cr, uid, ids, context=None:
+#                                  ids, None, 10),
+#            'account.invoice': (_get_move_lines_invoice,
+#                                ['payment_type'], 20),
+#        }
+    indirect_payment = fields.Boolean(
+        "Indirect Payment",
+        compute=_indirect_payment_get,
+        fnct_search=_indirect_payment_search)
+    payment_order_check = fields.Boolean("Mostrar en Efectos")
+    to_concile_account = fields.Many2one(
+        'account.account', 'Expected Account To Concile',
+        help='Cuenta con la que deberá ser conciliada en un apunte posterior')
 
-    _columns = {
-         'payment_type': fields.function(_payment_type_get, method=True, type="many2one", relation="payment.type", string="Payment type", readonly=True,
-                                        store={
-                'account.move.line': (lambda self, cr, uid, ids, context=None:
-                                      ids, None, 10),
-                'account.invoice': (_get_move_lines_invoice,
-                                    ['payment_type'], 20),
-            }),
-         'indirect_payment': fields.function(_indirect_payment_get, fnct_search=_indirect_payment_search, method=True, type="boolean", string="Indirect Payment"),
-         'payment_order_check': fields.boolean("Mostrar en Efectos"),
-         'to_concile_account': fields.many2one('account.account', 'Expected Account To Concile', required=False, help='Cuenta con la que deberá ser conciliada en un apunte posterior'),
-    }
-account_move_line()
 
 #
 # Modo de Pago
 #
-#==================================================================================
-#============================== INHERIT CLASS PAYMENT_MODE=========================
-#==================================================================================
-#Se añaden campos a los modos de pago para poder gestionar los descuentos de efectos
-
-class payment_mode(osv.osv):
+# ===========================================================================
+# ========================== INHERIT CLASS PAYMENT_MODE =====================
+# ===========================================================================
+# Se añaden campos a los modos de pago para poder gestionar los descuentos de efectos
+class payment_mode(models.Model):
     _inherit = 'payment.mode'
-    _columns = {
-        'cuenta_deuda_efectos_descontados': fields.many2one('account.account', 'Cuenta Deuda Efectos Descontados', required=False, help='Cuenta para efectos descontados. Ejemplo: 5208xx'),
-        'cuenta_factoring': fields.many2one('account.account', 'Cuenta Deudas por Operaciones de Factoring', required=False, help='Cuenta para deudas por operaciones de Factoring. Ejemplo: 5209xx'),
-        'cuenta_efectos_descontados': fields.many2one('account.account', 'Cuenta Genérica Efectos Descontados', required=False, help='Cuenta para efectos descontados. Ejemplo: 4311x'),
-        'cuenta_efectos_impagados': fields.many2one('account.account', 'Cuenta Genérica Efectos Impagados', required=False, help='Cuenta para efectos impagados. Ejemplo: 4315x'),
-        'value_amount': fields.float('% Interés', help="% de gastos sobre cobro"),
-        'value_amount_unpaid': fields.float('% Interés impago', help="% de gastos sobre cobro"),
-        'expense_account': fields.many2one('account.account', 'Cuenta Gastos', required=False, help='Cuenta para gastos de cobro'),
-      }
-    #_defaults = {
-    #    'cuenta_deuda_efectos_descontados': lambda *a: '705',
-    #    'cuenta_factoring': lambda *a: '707',
-    #    'cuenta_efectos_descontados': lambda *a: '528',
-    #}
-payment_mode()
+
+    cuenta_deuda_efectos_descontados = fields.Many2one(
+        'account.account', 'Cuenta Deuda Efectos Descontados',
+        help='Cuenta para efectos descontados. Ejemplo: 5208xx')
+    cuenta_factoring = fields.Many2one(
+        'account.account', 'Cuenta Deudas por Operaciones de Factoring',
+        help='Cuenta para deudas por operaciones de Factoring. Ejemplo: 5209xx')
+    cuenta_efectos_descontados = fields.Many2one(
+        'account.account', 'Cuenta Genérica Efectos Descontados',
+        help='Cuenta para efectos descontados. Ejemplo: 4311x')
+    cuenta_efectos_impagados = fields.Many2one(
+        'account.account', 'Cuenta Genérica Efectos Impagados',
+        help='Cuenta para efectos impagados. Ejemplo: 4315x')
+    value_amount = fields.Float('% Interés', help="% de gastos sobre cobro")
+    value_amount_unpaid = fields.Float(
+        '% Interés impago', help="% de gastos sobre cobro")
+    expense_account = fields.Many2one(
+        'account.account', 'Cuenta Gastos',
+        help='Cuenta para gastos de cobro')
 
 
 #
 # Orden de Cobro
 #
-#==================================================================================
-#============================== INHERIT CLASS PAYMENT_ORDER========================
-#==================================================================================
-#Se amplia la funcuonalidad de las ordenes de cobro para registrar descuentos de efectos
-
-
-class payment_line(osv.osv):
+# ==================================================================================
+# ============================== INHERIT CLASS PAYMENT_ORDER========================
+# ==================================================================================
+# Se amplia la funcuonalidad de las ordenes de cobro para registrar descuentos de efectos
+class payment_line(models.Model):
     _name = 'payment.line'
     _inherit = 'payment.line'
 
@@ -390,22 +372,20 @@ class payment_line(osv.osv):
                 result[line.id] = 'Unpaid'
         return result
 
-
-    _columns = {
-        'unpaid': fields.boolean('Unpaid'),
-        #'paid': fields.function(_paid_get, method=True, type="boolean", string="Paid"),
-        'state_flow': fields.function(_state_get, method=True, type="char", string="State"),
-        'disccount_move_id': fields.many2one('account.move.line', 'Movimiento de efecto descontado', required=False, help='Movimiento del efecto descontado'),
-        'unpaid_move_id': fields.many2one('account.move.line', 'Movimiento de efecto impagado', required=False, help='Movimiento del efecto impagado'),
-    }
+    unpaid = fields.Boolean('Unpaid')
+#     state_flow = fields.Char("State", compute=_state_get)
+    disccount_move_id = fields.Many2one(
+        'account.move.line', 'Movimiento de efecto descontado',
+        help='Movimiento del efecto descontado')
+    unpaid_move_id = fields.Many2one(
+        'account.move.line', 'Movimiento de efecto impagado',
+        help='Movimiento del efecto impagado')
 
     def check_paid (self, cr, uid, automatic=False, use_new_cursor=False, context=None):
         ''' Runs through scheduler.
         @param use_new_cursor: False or the dbname
         '''
-
         self._check_maturity(cr, uid, use_new_cursor=use_new_cursor, context=context)
-
 
     def _check_maturity(self, cr, uid, ids=None, use_new_cursor=False, context=None):
         '''
@@ -524,34 +504,30 @@ class payment_line(osv.osv):
         return {}
 
 
-payment_line()
-
-
-class payment_order(osv.osv):
+class payment_order(models.Model):
     _name = 'payment.order'
     _inherit = 'payment.order'
 
-    _columns = {
-        'create_account_moves': fields.selection([('bank-statement','Bank Statement'),('direct-payment','Direct Payment'),('factoring','Factoring'),('descuento-efecto','Descuento de Efectos')],
-                                                 'Create Account Moves',
-                                                 required=True,
-                                                 states={'done':[('readonly',True)]},
-                                                 help='Indicates when account moves should be created for order payment lines. "Bank Statement" '\
-                                                      'will wait until user introduces those payments in bank a bank statement. "Direct Payment" '\
-                                                      'will mark all payment lines as payied once the order is done.'),
-        'expense_moves':fields.boolean('Contabilizar Gastos?'),
-        'expenses':fields.float('Gastos remesa', help="Gastos de remesa"),
+    create_account_moves = fields.Selection(
+        [('bank-statement', 'Bank Statement'),
+         ('direct-payment', 'Direct Payment'),
+         ('factoring', 'Factoring'),
+         ('descuento-efecto', 'Descuento de Efectos')],
+        'Create Account Moves', required=True,
+        states={'done': [('readonly', True)]},
+        help="Indicates when account moves should be created for order "
+        "payment lines. \"Bank Statement\" will wait until user introduces "
+        "those payments in bank a bank statement. \"Direct Payment\" will "
+        "mark all payment lines as payied once the order is done.")
+    expense_moves = fields.Boolean('Contabilizar Gastos')
+    expenses = fields.Float('Gastos remesa', help="Gastos de remesa")
+    due_date = fields.Date('Fecha Vencimiento')
 
-        'due_date': fields.date('Fecha Vencimiento'),
-    }
-
-
-    def accounting_factoring (self, cr, uid, ids, context=None):
+    def accounting_factoring(self, cr, uid, ids, context=None):
         if context is None:
             context = {}
         self.write(cr, uid, ids, {'date_done': time.strftime('%Y-%m-%d')})
         company_currency_id = self.pool.get('res.users').browse(cr, uid, uid, context).company_id.currency_id.id
-
 
         for order in self.browse(cr, uid, ids, context):
             currency_id = order.mode.journal.currency and order.mode.journal.currency.id or company_currency_id
@@ -572,13 +548,10 @@ class payment_order(osv.osv):
                     'period_id': order.period_id.id,
                 }, context)
 
-
-
                 if line.type == 'payable':
                     line_amount = line.amount_currency or line.amount
                 else:
                     line_amount = -line.amount_currency or -line.amount
-
 
                 acc_cur = ((line_amount<=0) and order.mode.journal.default_debit_account_id) or line.account_id
 
@@ -805,7 +778,7 @@ class payment_order(osv.osv):
 
         return True
 
-    def action_pending (self, cr, uid, ids, context=None):
+    def action_pending(self, cr, uid, ids, context=None):
         if context is None:
             context = {}
         #self.accounting_1 (cr, uid, ids, context)
@@ -813,9 +786,9 @@ class payment_order(osv.osv):
     def set_done(self, cr, uid, ids, context=None):
         if context is None:
             context = {}
-        for order in  self.pool.get('payment.order').browse (cr, uid, ids):
+        for order in self.pool.get('payment.order').browse (cr, uid, ids):
             if order.create_account_moves != 'direct-payment':
-                self.accounting_factoring (cr, uid, [order.id])
+                self.accounting_factoring(cr, uid, [order.id])
                 wf_service = netsvc.LocalService("workflow")
                 self.write(cr, uid, order.id, {'date_done': time.strftime('%Y-%m-%d')})
                 wf_service.trg_validate(uid, 'payment.order', order.id, 'done', cr)
@@ -926,17 +899,9 @@ class payment_order(osv.osv):
                             'to_concile_account': cuenta_deuda_descuento_efectos,
                         }, context)
 
-
-
-
-
-
-
-
-
                     aml_ids = [x.id for x in self.pool.get('account.move').browse(cr, uid, move_id, context).line_id]
                     for x in self.pool.get('account.move.line').browse(cr, uid, aml_ids, context):
-                        if x.state <> 'valid':
+                        if x.state != 'valid':
                             raise osv.except_osv(_('Error !'), _('Account move line "%s" is not valid') % x.name)
                         #self.pool.get('account.move.line').write(cr, uid, [x.id], {'ref':ref})
 
@@ -1081,18 +1046,11 @@ class payment_order(osv.osv):
                            # 'to_concile_account': cuenta_deuda_descuento_efectos,
                         }, context)
 
-
-
-
-
-
-
                     aml_ids = [x.id for x in self.pool.get('account.move').browse(cr, uid, move_id, context).line_id]
                     for x in self.pool.get('account.move.line').browse(cr, uid, aml_ids, context):
                         if x.state <> 'valid':
                             raise osv.except_osv(_('Error !'), _('Account move line "%s" is not valid') % x.name)
                         #self.pool.get('account.move.line').write(cr, uid, [x.id], {'ref':ref})
-
 
                 if line.disccount_move_id and not line.disccount_move_id.reconcile_id:
                     ## If payment line of disccount has a related move line, we try to reconcile it with the move we just created.
@@ -1126,5 +1084,3 @@ class payment_order(osv.osv):
                         #'payment_move_id': move_id,
                     #}, context)
         return True
-
-payment_order()
