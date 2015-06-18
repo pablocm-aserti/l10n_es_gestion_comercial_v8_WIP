@@ -25,15 +25,15 @@
     "category": "Localisation/Europe",
     "description":
     """
-OJO: MIGRACIÓN A PARTIR DE revno 341 DE lp:~pexego/openerp-spain/openerp-spain-gestion-comercial
-TODO: MERGEAR CAMBIOS DE NUESTRO FORK (MAPEO CUENTAS, ETC)
+    WIP, migración parcial de revno 341 lp:~pexego/openerp-spain/openerp-spain-gestion-comercial
+
 
         Este modulo amplia la funcionalidad contable de OpenERP para poder llevar el control de la gestión comercial
         de documentos de cobro/pago y efectos contables.
 
         Funcionalidades :
 
-        * Se crean diarios de gestión de fectos comerciales, impagos e incobrables.
+        * Se crean diarios de gestión de efectos comerciales, impagos e incobrables.
 
         * Cuando se realiza un pago de cliente por estos diarios, agrupa los efectos liquidados por ese pago en un nuevo efecto.
 
@@ -56,7 +56,7 @@ TODO: MERGEAR CAMBIOS DE NUESTRO FORK (MAPEO CUENTAS, ETC)
 #         "wizard/check_paid_view.xml",
 #         "wizard/unpaid_wizard.xml",
         "check_payments.xml",
-#         "gestion_comercial_view.xml",
+        "gestion_comercial_view.xml",
         "account_check_view.xml",
         "gestion_comercial_journals.xml",
         "gestion_comercial_menu.xml",

@@ -27,7 +27,7 @@ from osv import osv, fields
 
 class unpaid_wizard(osv.osv_memory):
     _name = 'unpaid.wizard'
-    _description = 'Set and account payment as unpaid'   
+    _description = 'Set and account payment as unpaid'
 
     _columns = {
         'date':fields.date('Date', required=True),
@@ -54,7 +54,7 @@ class unpaid_wizard(osv.osv_memory):
         company_currency_id = self.pool.get('res.users').browse(cr, uid, uid, context).company_id.currency_id.id
         data = self.browse(cr, uid, ids, context=context)[0]
         for line in line_obj.browse(cr, uid, context.get('active_ids'), context=context):
-            
+
             currency_id = line.order_id.mode.journal.currency and line.order_id.mode.journal.currency.id or company_currency_id
             period_obj = period_obj = self.pool.get('account.period')
             period_ids = period_obj.find(cr, uid, data.date, context=context)
@@ -65,8 +65,7 @@ class unpaid_wizard(osv.osv_memory):
                 'journal_id': journal_id,
                 'period_id': period_id,
             }, context)
-                
-            
+
             line_amount = line.amount
             bank_account_id = line.order_id.mode.journal.default_credit_account_id.id
             unpaid_account_id = line.order_id.mode.cuenta_efectos_impagados.id
@@ -76,7 +75,7 @@ class unpaid_wizard(osv.osv_memory):
             ctx = context.copy()
             ctx['res.currency.compute.account'] = acc_cur
             amount = self.pool.get('res.currency').compute(cr, uid, currency_id, company_currency_id, line_amount, ctx)
-            
+
             val = {
                 'name': "UNPAID - " + line.order_id.reference + "/" + line.name,
                 'move_id': move_id,
@@ -90,7 +89,7 @@ class unpaid_wizard(osv.osv_memory):
                 'period_id': period_id,
                 'currency_id': currency_id,
             }
-            
+
             #amount = self.pool.get('res.currency').compute(cr, uid, currency_id, company_currency_id, line_amount, context=ctx)
             if currency_id <> company_currency_id:
                 amount_cur = self.pool.get('res.currency').compute(cr, uid, company_currency_id, currency_id, amount, context=ctx)
@@ -113,7 +112,7 @@ class unpaid_wizard(osv.osv_memory):
                 move_currency_id = False
 
             if data.expenses:
-                
+
                 val = {
                     'name': "EXP UNPAID - " + line.order_id.reference + "/" + line.name,
                     'move_id': move_id,
@@ -128,11 +127,11 @@ class unpaid_wizard(osv.osv_memory):
                     'currency_id': currency_id,
                 }
                 expense_line_id = self.pool.get('account.move.line').create(cr, uid, val, context, check=False)
-                
+
                 amount_bank = amount + data.expense_amount
             else:
-                amount_bank = amount 
-            
+                amount_bank = amount
+
             val = {
                 'name': " UNPAID - " + line.order_id.reference + "/" + line.name,
                 'move_id': move_id,
@@ -146,18 +145,15 @@ class unpaid_wizard(osv.osv_memory):
                 'period_id': period_id,
                 'currency_id': currency_id,
             }
-            bank_line_id = self.pool.get('account.move.line').create(cr, uid, val, context)               
-              
+            bank_line_id = self.pool.get('account.move.line').create(cr, uid, val, context)
+
             aml_ids = [x.id for x in self.pool.get('account.move').browse(cr, uid, move_id, context).line_id]
             for x in self.pool.get('account.move.line').browse(cr, uid, aml_ids, context):
-                if x.state <> 'valid':
+                if x.state != 'valid':
                     raise osv.except_osv(_('Error !'), _('Account move line "%s" is not valid') % x.name)
             self.pool.get('payment.line').write(cr, uid, [line.id], {
                 'unpaid_move_id': unpaid_line_id
-            }, 
+            },
             context)
-        
+
         return {'type': 'ir.actions.act_window_close'}
-
-unpaid_wizard()
-

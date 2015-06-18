@@ -26,7 +26,7 @@ from osv import osv, fields
 
 class check_paid_wizard(osv.osv_memory):
     _name = 'check.paid.wizard'
-    _description = 'Check payments in orders'   
+    _description = 'Check payments in orders'
 
 
     def _check_paid(self, cr, uid, ids, context=None):

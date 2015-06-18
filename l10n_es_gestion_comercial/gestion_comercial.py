@@ -47,7 +47,7 @@ class account_journal(models.Model):
     _name = 'account.journal'
 
     indirect_payment = fields.Boolean(
-        'Gestión de efectos comerciales',
+        u'Gestión de efectos comerciales',
         help="Marcar si se va a utilizar este diario para registrar apuntes "
         "de efectos correspondiente a gestión comercial (pagarés, giros, "
         "cheques, etc). El sistema usuará la cuenta definida en la ficha "
@@ -62,7 +62,7 @@ class account_journal(models.Model):
          ('incobrable', 'Incobrable')],
         'Tipo de Efecto Comercial', select=True)
     gestion_cobro = fields.Boolean(
-        'Gestión de cobro', help="Marque esta opción si el diario será "
+        u'Gestión de cobro', help="Marque esta opción si el diario será "
         "utilizado para operaciones de gestión de cobro")
     descuento_efectos = fields.Boolean(
         'Descuento de Efectos', help="Marque esta opción si el diario será "
@@ -254,25 +254,17 @@ class account_move_line(models.Model):
 
 # Se crea un nuevo campo funcional de tipo booleano que obtiene si es pago
 # corresponde a un efecto de gestión comercial o no.
-    def _indirect_payment_get(self, cr, uid, ids, field_name, arg, context=None):
-        result = {}
-        voucher_obj = self.pool.get('account.voucher')
-
-        for rec in self.browse(cr, uid, ids, context):
-            result[rec.id] = False
-            voucher_id = voucher_obj.search(cr, uid, [('move_id', '=', rec.move_id.id)], context=context)
-            if voucher_id:
-                voucher = voucher_obj.browse(cr, uid, voucher_id[0], context)
+    @api.multi
+    def _indirect_payment_get(self):
+        for rec in self:
+            voucher = self.env['account.voucher'].search(
+                [('move_id', '=', rec.move_id.id)])
+            rec.indirect_payment = False
+            if voucher:
                 if voucher.indirect_payment:
                     if rec.debit > 0:  # rec.id.account_id.type = 'receivable'
-                        result[rec.id] = True
-                    else:
-                        result[rec.id] = False
-                else:
-                    result[rec.id] = False
-            else:
-                result[rec.id] = False
-        return result
+                        rec.indirect_payment = True
+
 
 # Creamos los metodos de busqueda para obtener los registros que tienen
 # el check de efecto de gestión comercial marcado
@@ -326,7 +318,8 @@ class account_move_line(models.Model):
 # ===========================================================================
 # ========================== INHERIT CLASS PAYMENT_MODE =====================
 # ===========================================================================
-# Se añaden campos a los modos de pago para poder gestionar los descuentos de efectos
+# Se añaden campos a los modos de pago para poder gestionar los descuentos de
+# efectos
 class payment_mode(models.Model):
     _inherit = 'payment.mode'
 
@@ -337,14 +330,14 @@ class payment_mode(models.Model):
         'account.account', 'Cuenta Deudas por Operaciones de Factoring',
         help='Cuenta para deudas por operaciones de Factoring. Ejemplo: 5209xx')
     cuenta_efectos_descontados = fields.Many2one(
-        'account.account', 'Cuenta Genérica Efectos Descontados',
+        'account.account', u'Cuenta Genérica Efectos Descontados',
         help='Cuenta para efectos descontados. Ejemplo: 4311x')
     cuenta_efectos_impagados = fields.Many2one(
-        'account.account', 'Cuenta Genérica Efectos Impagados',
+        'account.account', u'Cuenta Genérica Efectos Impagados',
         help='Cuenta para efectos impagados. Ejemplo: 4315x')
-    value_amount = fields.Float('% Interés', help="% de gastos sobre cobro")
+    value_amount = fields.Float(u'% Interés', help="% de gastos sobre cobro")
     value_amount_unpaid = fields.Float(
-        '% Interés impago', help="% de gastos sobre cobro")
+        u'% Interés impago', help="% de gastos sobre cobro")
     expense_account = fields.Many2one(
         'account.account', 'Cuenta Gastos',
         help='Cuenta para gastos de cobro')
